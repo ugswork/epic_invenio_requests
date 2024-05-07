@@ -21,6 +21,7 @@ type = TermsFacet(
         "guest-access-request": _("Guest access"),
         "user-access-request": _("User access"),
         "community-manage-record": _("Community manage record"),
+        "community-membership-request": _("Membership request"),
     },
 )
 
