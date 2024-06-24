@@ -36,6 +36,28 @@ REQUESTS_ROUTES = {
 }
 """Invenio requests ui endpoints."""
 
+REQUESTS_SEARCH = {
+    "facets": ["type", "status"],
+    "sort": ["bestmatch", "newest", "oldest"],
+}
+"""Requests search default configuration."""
+
+REQUESTS_SORT_OPTIONS = {
+    "bestmatch": dict(
+        title=_("Best match"),
+        fields=["_score"],  # search defaults to desc on `_score` field
+    ),
+    "newest": dict(
+        title=_("Newest"),
+        fields=["-created"],
+    ),
+    "oldest": dict(
+        title=_("Oldest"),
+        fields=["created"],
+    ),
+}
+"""Definitions of available request sort options."""
+
 REQUESTS_FACETS = {
     "type": {
         "facet": facets.type,

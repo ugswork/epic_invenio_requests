@@ -11,7 +11,12 @@
 """Requests service configuration."""
 
 from invenio_records_resources.services import RecordServiceConfig, SearchOptions
-from invenio_records_resources.services.base.config import ConfiguratorMixin, FromConfig
+from invenio_records_resources.services.base.config import (
+    ConfiguratorMixin,
+    FromConfig,
+    FromConfigSearchOptions,
+    SearchOptionsMixin,
+)
 from invenio_records_resources.services.records.links import pagination_links
 
 from invenio_requests.services.requests import facets
@@ -39,7 +44,7 @@ def _is_action_available(request, context):
     return RequestActions.can_execute(request, action) and permission.allows(identity)
 
 
-class RequestSearchOptions(SearchOptions):
+class RequestSearchOptions(SearchOptions, SearchOptionsMixin):
     """Search options."""
 
     params_interpreters_cls = SearchOptions.params_interpreters_cls + [
@@ -66,7 +71,12 @@ class RequestsServiceConfig(RecordServiceConfig, ConfiguratorMixin):
     )
     result_item_cls = RequestItem
     result_list_cls = RequestList
-    search = RequestSearchOptions
+    search = FromConfigSearchOptions(
+        config_key="REQUESTS_SEARCH",
+        sort_key="REQUESTS_SORT_OPTIONS",
+        facet_key="REQUESTS_FACETS",
+        search_option_cls=RequestSearchOptions,
+    )
 
     # request-specific configuration
     record_cls = Request  # needed for model queries
