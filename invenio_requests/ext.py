@@ -10,6 +10,8 @@
 
 """Invenio module for generic and customizable requests."""
 
+import inspect
+
 from importlib_metadata import entry_points
 
 from . import config
@@ -103,17 +105,23 @@ class InvenioRequests:
             app.config["REQUESTS_ENTITY_RESOLVERS"]
         )
         # Load from entry points
-        register_entry_point(self.request_type_registry, "invenio_requests.types")
+        register_entry_point(
+            self.request_type_registry, "invenio_requests.types", app=app
+        )
         register_entry_point(self.request_type_registry, "invenio_requests.event_types")
         register_entry_point(
             self.entity_resolvers_registry, "invenio_requests.entity_resolvers"
         )
 
 
-def register_entry_point(registry, ep_name):
+def register_entry_point(registry, ep_name, app=None):
     """Register types from an entry point."""
     for ep in set(entry_points(group=ep_name)):
-        type_cls = ep.load()
+        loaded_ep = ep.load()
+        type_cls = loaded_ep
+        # Allow to load class from functions (note: classes are callable too)
+        if app and inspect.isfunction(loaded_ep):
+            type_cls = loaded_ep(app=app)
         registry.register_type(type_cls())
 
 
