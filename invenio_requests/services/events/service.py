@@ -231,6 +231,9 @@ class RequestEventsService(RecordService):
 
     def _get_request(self, request_id):
         """Get associated request."""
+        # If it's already a request, return it
+        if isinstance(request_id, self.request_cls):
+            return request_id
         return self.request_cls.get_record(request_id)
 
     def _get_event(self, event_id, with_deleted=True):
