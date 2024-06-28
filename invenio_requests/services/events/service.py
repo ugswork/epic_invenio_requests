@@ -75,7 +75,7 @@ class RequestEventsService(RecordService):
         event = self.record_cls.create(
             {},
             request=request.model,
-            request_id=str(request_id),
+            request_id=str(request.id),
             type=event_type,
         )
         event.update(data)
@@ -204,7 +204,7 @@ class RequestEventsService(RecordService):
             params,
             search_preference,
             permission_action="unused",
-            extra_filter=dsl.Q("term", request_id=str(request_id)),
+            extra_filter=dsl.Q("term", request_id=str(request.id)),
             **kwargs,
         )
         search_result = search.execute()
@@ -216,7 +216,7 @@ class RequestEventsService(RecordService):
             params,
             links_tpl=LinksTemplate(
                 self.config.links_search,
-                context={"request_id": request_id, "args": params},
+                context={"request_id": str(request.id), "args": params},
             ),
             links_item_tpl=self.links_item_tpl,
             expandable_fields=self.expandable_fields,
