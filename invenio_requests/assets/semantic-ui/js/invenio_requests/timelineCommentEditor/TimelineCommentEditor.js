@@ -30,8 +30,8 @@ const TimelineCommentEditor = ({
         />
         <Container fluid className="ml-0-mobile mr-0-mobile fluid-mobile">
           <RichEditor
-            value={commentContent}
-            onChange={(event, editor) => {
+            inputValue={commentContent}
+            onEditorChange={(event, editor) => {
               setCommentContent(editor.getContent());
             }}
             minHeight={150}

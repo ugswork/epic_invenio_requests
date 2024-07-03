@@ -113,8 +113,9 @@ class TimelineCommentEvent extends Component {
 
                   {isEditing ? (
                     <RichEditor
-                      value={event?.payload?.content}
-                      onChange={(event, editor) => {
+                      initialValue={event?.payload?.content}
+                      inputValue={commentContent}
+                      onEditorChange={(event, editor) => {
                         this.setState({ commentContent: editor.getContent() });
                       }}
                       minHeight={150}
