@@ -8,6 +8,15 @@
 Changes
 =======
 
+Version 4.1.1 (released 2024-08-01)
+
+- comments: fix jumping cursor
+- ui: [#855] add community membership request label type
+- service: fix request ID passing
+- service: handle request parameters flexibly
+- registry: allow entry pointsto be callables
+- config: allow request search configuration
+
 Version 4.1.0 (released 2024-03-23)
 
 - mappings: change "dynamic" values to string
