@@ -8,6 +8,10 @@
 Changes
 =======
 
+Version 4.1.2 (released 2024-08-06)
+
+- comments: fix comment editor loses content on focus change
+
 Version 4.1.1 (released 2024-08-01)
 
 - comments: fix jumping cursor
