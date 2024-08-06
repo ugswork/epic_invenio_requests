@@ -1,5 +1,6 @@
 // This file is part of InvenioRequests
 // Copyright (C) 2022 CERN.
+// Copyright (C) 2024 KTH Royal Institute of Technology
 //
 // Invenio RDM Records is free software; you can redistribute it and/or modify it
 // under the terms of the MIT License; see LICENSE file for more details.
@@ -69,7 +70,10 @@ export class RequestAction extends Component {
               <Modal.Description>
                 {i18next.t("Add comment (optional)")}
                 <Divider hidden />
-                <RichEditor onChange={this.onCommentChange} />
+                <RichEditor
+                  inputValue={() => this.state.actionComment}
+                  onChange={this.onCommentChange}
+                />
               </Modal.Description>
             </Modal.Content>
           </RequestActionModal>
