@@ -20,6 +20,17 @@ export const SaveButton = (props) => (
   />
 );
 
+export const ReplyButton = (props) => (
+  <Button
+    icon="reply"
+    labelPosition="left"
+    positive
+    size="mini"
+    content={i18next.t("Reply")}
+    {...props}
+  />
+);
+
 export const RequestDeclineButton = ({
   onClick,
   loading,

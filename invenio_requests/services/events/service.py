@@ -31,6 +31,8 @@ from invenio_requests.services.results import EntityResolverExpandableField
 
 from ...resolvers.registry import ResolverRegistry
 
+import json
+from pprint import pprint
 
 class RequestEventsService(RecordService):
     """Request Events service."""
@@ -75,7 +77,7 @@ class RequestEventsService(RecordService):
         event = self.record_cls.create(
             {},
             request=request.model,
-            request_id=str(request.id),
+            request_id=str(request_id),
             type=event_type,
         )
         event.update(data)
@@ -137,6 +139,46 @@ class RequestEventsService(RecordService):
         )
         event["payload"]["content"] = data["payload"]["content"]
         event["payload"]["format"] = data["payload"]["format"]
+        event["payload"]["revision_id"] = str(int(event["payload"]["revision_id"])+1)
+        uow.register(RecordCommitOp(event, indexer=self.indexer))
+
+        return self.result_item(
+            self,
+            identity,
+            event,
+            schema=schema,
+            links_tpl=self.links_item_tpl,
+            expandable_fields=self.expandable_fields,
+            expand=expand,
+        )
+    
+    @unit_of_work()
+    def reply(self, identity, id_, data, revision_id=None, uow=None, expand=False):
+        """Add reply to a comment."""
+        event = self._get_event(id_)
+        schema = self._wrap_schema(event.type.marshmallow_schema())
+        # request = self._get_request(event.request.id)
+
+        # self.check_revision_id(event, revision_id)
+
+        if event.type != CommentEventType:
+            raise PermissionError("You cannot update this event.")
+
+        eventRepliesList = json.loads(event['payload']['replies'])
+
+        # Add the Reply event to 'Replies[]' of CommentEvent
+        # If Reply ID is added instead of Reply Event, the reply is not
+        # available in the front end, because indexing takes some time.
+
+        # If 'content' is present, it contains the replyevent to be added.
+        # If not, the 'replies' needs to be updated
+        if 'content' in data['payload']:
+            eventRepliesList.append(data['payload']['content'])
+        else:
+            eventRepliesList = data['payload']['replies']
+        
+        event['payload']['replies'] = json.dumps(eventRepliesList)
+
         uow.register(RecordCommitOp(event, indexer=self.indexer))
 
         return self.result_item(
@@ -164,6 +206,10 @@ class RequestEventsService(RecordService):
 
         if event.type != CommentEventType:
             raise PermissionError("You cannot delete this event.")
+        
+        eventRepliesList = json.loads(event['payload']['replies'])
+        if len(eventRepliesList) > 0:
+            raise PermissionError("This event has replies. It cannot be deleted.")
 
         # update the event for the deleted comment with a LogEvent
         event.type = LogEventType
@@ -204,7 +250,7 @@ class RequestEventsService(RecordService):
             params,
             search_preference,
             permission_action="unused",
-            extra_filter=dsl.Q("term", request_id=str(request.id)),
+            extra_filter=dsl.Q("term", request_id=str(request_id)),
             **kwargs,
         )
         search_result = search.execute()
@@ -216,7 +262,7 @@ class RequestEventsService(RecordService):
             params,
             links_tpl=LinksTemplate(
                 self.config.links_search,
-                context={"request_id": str(request.id), "args": params},
+                context={"request_id": request_id, "args": params},
             ),
             links_item_tpl=self.links_item_tpl,
             expandable_fields=self.expandable_fields,
@@ -231,9 +277,6 @@ class RequestEventsService(RecordService):
 
     def _get_request(self, request_id):
         """Get associated request."""
-        # If it's already a request, return it
-        if isinstance(request_id, self.request_cls):
-            return request_id
         return self.request_cls.get_record(request_id)
 
     def _get_event(self, event_id, with_deleted=True):

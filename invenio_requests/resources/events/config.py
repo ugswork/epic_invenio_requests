@@ -13,7 +13,6 @@
 from invenio_records_resources.resources import RecordResourceConfig
 from marshmallow import fields
 
-
 class RequestCommentsResourceConfig(RecordResourceConfig):
     """Request Events resource configuration."""
 
@@ -22,6 +21,7 @@ class RequestCommentsResourceConfig(RecordResourceConfig):
     routes = {
         "list": "/<request_id>/comments",
         "item": "/<request_id>/comments/<comment_id>",
+        "reply": "/<request_id>/comments/<comment_id>/reply",
         "timeline": "/<request_id>/timeline",
     }
 

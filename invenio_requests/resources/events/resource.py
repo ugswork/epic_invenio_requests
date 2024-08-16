@@ -29,6 +29,10 @@ from invenio_records_resources.resources.records.utils import search_preference
 
 from ...customizations.event_types import CommentEventType
 
+import json
+from typing import Dict
+from operator import itemgetter
+from pprint import pprint
 
 #
 # Resource
@@ -59,6 +63,7 @@ class RequestCommentsResource(RecordResource):
             route("POST", routes["list"], self.create),
             route("GET", routes["item"], self.read),
             route("PUT", routes["item"], self.update),
+            route("PUT", routes["reply"], self.reply),
             route("DELETE", routes["item"], self.delete),
             route("GET", routes["timeline"], self.search),
         ]
@@ -70,6 +75,9 @@ class RequestCommentsResource(RecordResource):
     def create(self):
         """Create a comment."""
         data = deepcopy(resource_requestctx.data) if resource_requestctx.data else {}
+        data['payload'].update({"level": 'comment',
+                                "revision_id": '0',
+                                "replies": json.dumps([])})
         item = self.service.create(
             identity=g.identity,
             request_id=resource_requestctx.view_args["request_id"],
@@ -112,6 +120,51 @@ class RequestCommentsResource(RecordResource):
         return item.to_dict(), 200
 
     @item_view_args_parser
+    @request_extra_args
+    @request_headers
+    @data_parser
+    @response_handler()
+    def reply(self):
+        """Reply to a comment."""
+
+        data = deepcopy(resource_requestctx.data) if resource_requestctx.data else {}
+
+        eventItem = self.service.read(
+            identity=g.identity,
+            id_=resource_requestctx.view_args["comment_id"],
+        )
+        if eventItem['payload']['level'] == 'comment':
+            data['payload']['level'] = 'reply'
+        else:
+            data['payload']['level'] = 'subreply'
+
+        data['payload']['revision_id'] = '0'
+        data['payload']['replies'] = json.dumps([])
+
+        replyItem = self.service.create(
+            identity=g.identity,
+            request_id=resource_requestctx.view_args["request_id"],
+            data=data,
+            event_type=CommentEventType,
+            expand=resource_requestctx.args.get("expand", False),
+        )
+        # Add Reply Event to replies (instead of reply ID)
+        # in order to avoid delay in display
+        replyItem_dict = replyItem.to_dict()
+        replyItem_dict['payload']['replies'] = []
+        data['payload']['content'] = replyItem_dict
+        
+        item = self.service.reply(
+                identity=g.identity,
+                id_=resource_requestctx.view_args["comment_id"],
+                data=data,
+                revision_id=resource_requestctx.headers.get("if_match"),
+                expand=resource_requestctx.args.get("expand", False),
+        )
+        return item.to_dict(), 200
+    
+
+    @item_view_args_parser
     @request_headers
     def delete(self):
         """Delete a comment."""
@@ -138,4 +191,55 @@ class RequestCommentsResource(RecordResource):
             search_preference=search_preference(),
             expand=resource_requestctx.args.get("expand", False),
         )
-        return hits.to_dict(), 200
+        # print("\n\n============================  BEGIN ==============================")
+        
+        hits_dict = hits.to_dict()
+        hits_list = hits_dict["hits"]["hits"]
+
+        hits_id_dict = {}
+        for hit in hits_list:
+            if 'content' in hit['payload']:
+                hits_id_dict[hit['id']] = hit['payload']['content']
+
+        for hit in hits_list:
+            # Deleted event will not have 'replies' field, so skip
+            if 'replies' not in hit['payload']:
+                continue
+
+            repliesList = hit['payload']['replies']
+
+            # Although the last entry in replies list is saved as
+            # an event, replace it with reply id to reduce data and
+            # if it is found in hit, update the event by calling 
+            # service.reply without data
+
+            if isinstance(repliesList, str):
+                repliesList = json.loads(repliesList)
+
+            update_event = False
+            for index, reply in enumerate(repliesList):
+                if isinstance(reply, Dict):
+                    if reply['id'] in hits_id_dict:
+                        repliesList[index] = reply['id']
+                        update_event = True
+
+            if 'deleted a comment' in hits_id_dict.values():
+                repliesList_length = len(repliesList)
+                repliesList = [replyID for replyID in repliesList 
+                               if hits_id_dict[replyID] != 'deleted a comment']
+                if repliesList_length > len(repliesList):
+                    update_event = True
+
+            if update_event:
+                self.service.reply(
+                    identity=g.identity,
+                    id_=hit['id'],
+                    data={'payload': {'replies': repliesList}}
+                )
+            hit['payload']['replies'] = repliesList
+
+        # print("============================  END ==============================\n\n")
+
+        # return hits.to_dict(), 200
+        hits_dict['hits']['hits'] = hits_list
+        return hits_dict, 200

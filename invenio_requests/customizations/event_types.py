@@ -148,6 +148,11 @@ class CommentEventType(EventType):
                 validate=validate.OneOf(choices=[e.value for e in RequestEventFormat]),
                 load_default=RequestEventFormat.HTML.value,
             ),
+            replies=utils_fields.SanitizedHTML(
+                required=False, validate=validate.Length(min=1)
+            ),
+            level=fields.String(required=False, validate=validate.Length(min=1)),
+            revision_id=fields.String(required=False, validate=validate.Length(min=1)),
         )
 
     payload_required = True
